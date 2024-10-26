@@ -1,4 +1,4 @@
-# Check Target Demo
+# Check Target Demo
 
 배너의 노출 조건을 테스트하는 데이터 구조 및 함수 데모입니다.
 
