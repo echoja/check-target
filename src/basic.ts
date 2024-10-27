@@ -1,22 +1,22 @@
 export type Target = IGenderTarget | IAgeTarget | ITargetGroup | IRootTarget;
 
-interface IRootTarget {
+export interface IRootTarget {
   type: "root";
   child: Target;
 }
 
-interface ITargetGroup {
+export interface ITargetGroup {
   type: "group";
   operator: "and" | "or";
   children: Target[];
 }
 
-interface IGenderTarget {
+export interface IGenderTarget {
   type: "gender";
   value: "male" | "female";
 }
 
-interface IAgeTarget {
+export interface IAgeTarget {
   type: "age";
   operator: "<" | ">" | "<=" | ">=";
   value: number;
@@ -60,27 +60,44 @@ export const checkTarget: CheckTarget = (target, env) => {
 };
 
 const checkGroup = (target: ITargetGroup, env: IEnv): Result => {
-  if (target.children.length === 0) {
+  const results = target.children
+    .map((child) => checkTarget(child, env))
+    .filter((result) => result.type !== "ignore");
+
+  if (results.length === 0) {
     return { type: "ignore" };
   }
 
+  const failures = results.filter(
+    (result): result is Extract<typeof result, { type: "failure" }> =>
+      result.type === "failure",
+  );
+
+  // And
   if (target.operator === "and") {
-    for (const child of target.children) {
-      const result = checkTarget(child, env);
-      if (result.type === "failure") {
-        return result;
-      }
+    if (failures.length === 0) {
+      return { type: "success" };
     }
-    return { type: "success" };
-  } else {
-    for (const child of target.children) {
-      const result = checkTarget(child, env);
-      if (result.type === "success") {
-        return result;
-      }
-    }
-    return { type: "failure", reason: "No child matched" };
+
+    return {
+      type: "failure",
+      reason: failures.map((failure) => failure.reason).join(", "),
+    };
   }
+
+  // Or
+  if (target.operator === "or") {
+    if (failures.length !== results.length) {
+      return { type: "success" };
+    }
+
+    return {
+      type: "failure",
+      reason: failures.map((failure) => failure.reason).join(", "),
+    };
+  }
+
+  return { type: "ignore" };
 };
 
 const checkAge = (target: IAgeTarget, env: IEnv): Result => {

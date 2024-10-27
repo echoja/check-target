@@ -82,7 +82,7 @@ test("group OR target check", () => {
   });
   expect(checkTarget(target, { user: { age: 30 } })).toEqual({
     type: "failure",
-    reason: "No child matched",
+    reason: "Age is not less than 20, Age is not greater than or equal to 60",
   });
 });
 
